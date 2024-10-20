@@ -32,7 +32,7 @@ public class SignInActivity extends AppCompatActivity {
         EdgeToEdge.enable(this);
         binding = ActivitySignInBinding.inflate(getLayoutInflater()); // Ensure this matches your sign-in layout
         setContentView(binding.getRoot());
-
+        String key="HELLO";
         mAuth = FirebaseAuth.getInstance();
         progressDialog = new ProgressDialog(SignInActivity.this);
         progressDialog.setTitle("Login");
@@ -41,8 +41,7 @@ public class SignInActivity extends AppCompatActivity {
                 .setGoogleIdTokenRequestOptions(BeginSignInRequest.GoogleIdTokenRequestOptions.builder()
                         .setSupported(true)
                         // Your server's client ID, not your Android client ID.
-                        .setServerClientId(getString(R.string.server_client_id))
-
+                        .setServerClientId(getString(R.string.google_api_key))
                         // Only show accounts previously used to sign in.a
                         .setFilterByAuthorizedAccounts(true)
                         .build())
