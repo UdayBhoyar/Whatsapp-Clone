@@ -13,21 +13,25 @@
         android:theme="@style/Theme.WhatsappClone"
         tools:targetApi="31">
 
-        <!-- SignUpActivity -->
+        <!-- SignInActivity - This will be the first screen (launcher) -->
         <activity
-            android:name=".SignUpActivity"
-            android:exported="true">
+            android:name=".SignInActivity"
+            android:exported="true" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
+        <!-- SignUpActivity -->
+        <activity
+            android:name=".SignUpActivity"
+            android:exported="true" />
+
         <!-- MainActivity -->
         <activity
             android:name=".MainActivity"
-            android:exported="true">
-        </activity>
+            android:exported="true" />
 
     </application>
 
