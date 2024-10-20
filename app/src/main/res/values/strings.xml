@@ -1,6 +1,5 @@
 <resources>
     <string name="app_name">WhatsappClone</string>
     <string name="server_client_id">YOUR_SERVER_CLIENT_ID</string>
-    <string name="default_web_client_id">YOUR_WEB_CLIENT_ID</string>
-
+    <string name="default_web_client_id">1046346849249-6rtvngpvvrm1iqeatve7fc67rs4o9b7o.apps.googleusercontent.com</string>
 </resources>
