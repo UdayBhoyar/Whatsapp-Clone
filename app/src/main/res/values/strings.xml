@@ -1,5 +1,8 @@
 <resources>
     <string name="app_name">WhatsappClone</string>
     <string name="server_client_id">YOUR_SERVER_CLIENT_ID</string>
-    <string name="default_web_client_id">1046346849249-6rtvngpvvrm1iqeatve7fc67rs4o9b7o.apps.googleusercontent.com</string>
+    <string name="client_id">1046346849249-dob0ufe6j0j4d8sovbor1b67vnpc87ca.apps.googleusercontent.com</string>
+    <string name="default_android_client_id">1046346849249-6rtvngpvvrm1iqeatve7fc67rs4o9b7o.apps.googleusercontent.com</string>
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string> <!-- Android Client ID -->
 </resources>

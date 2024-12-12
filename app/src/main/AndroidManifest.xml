@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-    <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -13,39 +12,35 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.WhatsappClone"
         tools:targetApi="31">
-
+        <activity
+            android:name=".ChatdetailActivity"
+            android:exported="false" />
         <!-- SignInActivity - This will be the first screen (launcher) -->
         <activity
             android:name=".SignInActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity>
-
-        <!-- SignUpActivity -->
+        </activity> <!-- SignUpActivity -->
         <activity
             android:name=".SignUpActivity"
-            android:exported="true" />
-
-        <!-- MainActivity -->
+            android:exported="true" /> <!-- MainActivity -->
         <activity
             android:name=".MainActivity"
-            android:exported="true" />
-
-        <!-- Meta-data for Google Sign-In -->
+            android:exported="true" /> <!-- Meta-data for Google Sign-In -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="YOUR_ADMOB_APP_ID" />
-
-        <!-- Required for Google Sign-In -->
+            android:value="YOUR_ADMOB_APP_ID" /> <!-- Required for Google Sign-In -->
         <meta-data
             android:name="com.google.android.gms.auth.api.signin.GoogleSignInOptions"
-            android:value="@string/default_web_client_id" />
-
+            android:value="@string/client_id" />
     </application>
-
-    <!-- Permissions -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> <!-- Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <uses-permission android:name="android.permission.INTERNET" />
+
 </manifest>

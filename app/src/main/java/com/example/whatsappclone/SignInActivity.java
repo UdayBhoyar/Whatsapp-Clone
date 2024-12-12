@@ -23,6 +23,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.Firebase;
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.auth.AuthCredential;
 import com.google.firebase.auth.AuthResult;
 import com.google.firebase.auth.FirebaseAuth;
@@ -33,7 +35,7 @@ import static android.content.ContentValues.TAG;
 
 public class SignInActivity extends AppCompatActivity {
     ActivitySignInBinding binding;
-    private FirebaseAuth mAuth;
+     FirebaseAuth mAuth;
     ProgressDialog progressDialog;
     GoogleSignInClient mGoogleSignInClient;
     private static final int REQ_SIGN_IN = 65;  // Unique request code for Google Sign-In
@@ -43,19 +45,19 @@ public class SignInActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         binding = ActivitySignInBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-
-        mAuth = FirebaseAuth.getInstance();
+        FirebaseApp.initializeApp(this);
+//        mAuth = FirebaseAuth.getInstance();
         progressDialog = new ProgressDialog(SignInActivity.this);
         progressDialog.setTitle("Login");
         progressDialog.setMessage("Please wait, validation in progress");
 
         // Configure Google Sign-In
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken(getString(R.string.default_web_client_id))
+                .requestIdToken(getString(R.string.client_id))
                 .requestEmail()
                 .build();
         mGoogleSignInClient = GoogleSignIn.getClient(this, gso);
-
+        mAuth= FirebaseAuth.getInstance();
         binding.btnSignIn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -137,10 +139,11 @@ public class SignInActivity extends AppCompatActivity {
     private void firebaseAuthWithGoogle(String idToken) {
         AuthCredential credential=GoogleAuthProvider.getCredential(idToken,null);
         mAuth.signInWithCredential(credential)
-                .addOnCompleteListener(this, new OnCompleteListener() {
+                .addOnCompleteListener( new OnCompleteListener() {
                     @Override
                     public void onComplete(@NonNull Task task) {
                         if (task.isSuccessful()) {
+                            mAuth=FirebaseAuth.getInstance();
                             FirebaseUser user = mAuth.getCurrentUser();
                             Toast.makeText(SignInActivity.this, "Google Login Successful", Toast.LENGTH_SHORT).show();
                             startActivity(new Intent(SignInActivity.this, MainActivity.class));

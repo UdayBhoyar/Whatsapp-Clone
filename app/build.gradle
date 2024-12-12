@@ -46,10 +46,14 @@ dependencies {
     // Add the Firebase libraries you need
     implementation "com.google.firebase:firebase-auth" // Firebase Authentication
     implementation "com.google.firebase:firebase-database" // Firebase Realtime Database
-
+    implementation 'de.hdodenhof:circleimageview:3.1.0'
+    implementation 'com.squareup.picasso:picasso:2.8'
+//    implementation 'de.hdodenhof:circleimageview:3.1.0'// dependency for circular imageview to show profile picture
+//    implementation 'com.squareup.picasso:picasso:2.8'
     // Google Identity Services
     implementation "com.google.android.gms:play-services-auth:21.2.0"
-
+    implementation 'com.google.android.gms:play-services-base:18.3.0'
+    implementation 'com.github.bumptech.glide:glide:4.16.0'
     // Testing libraries
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
