@@ -15,6 +15,11 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.whatsappclone.ChatdetailActivity;
 import com.example.whatsappclone.Models.Users;
 import com.example.whatsappclone.R;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
@@ -52,6 +57,30 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
 
         // Set user details
         holder.userName.setText(users.getUserName());
+        //this code is to set the last message by ordering the last time stamp
+        FirebaseDatabase.getInstance().getReference().child("chats")
+                .child(FirebaseAuth.getInstance().getUid() + users.getUserId())
+                .orderByChild("timestamp")
+                .limitToLast(1)
+                .addValueEventListener(new ValueEventListener() { // Use addValueEventListener for real-time updates
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        if (snapshot.hasChildren()) {
+                            for (DataSnapshot snapshot1 : snapshot.getChildren()) {
+                                String message = snapshot1.child("message").getValue(String.class);
+                                holder.lastMessage.setText(message);
+                            }
+                        } else {
+                            holder.lastMessage.setText(""); // Show nothing if no messages are found
+                        }
+                    }
+
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        Log.e("UsersAdapter", "Failed to fetch last message", error.toException());
+                    }
+                });
+
         holder.itemView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -63,12 +92,6 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
             }
         });
 
-        // Ensure that 'lastMessage' field is not null before setting it
-        String lastMessage = users.getLastMessage() != null ? users.getLastMessage() : "Last Message";
-        holder.lastMessage.setText(lastMessage); // Set last message
-
-        // Debug logging for checking data binding
-        Log.d("UsersAdapter", "User: " + users.getUserName() + ", LastMessage: " + lastMessage);
     }
 
     @Override

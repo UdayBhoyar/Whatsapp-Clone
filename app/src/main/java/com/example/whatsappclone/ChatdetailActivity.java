@@ -3,6 +3,7 @@ package com.example.whatsappclone;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -91,6 +92,11 @@ public class ChatdetailActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 String message=binding.enterMessage.getText().toString();// taking msg from text field which is to be sent
+                if (message.trim().isEmpty()) {
+                    Toast.makeText(ChatdetailActivity.this, "Enter something", Toast.LENGTH_SHORT).show();
+                    return; // Stop further execution
+                }
+
                 final MessageModel model=new MessageModel(senderId,message);
                 model.setTimestamp(new Date().getTime());
                 binding.enterMessage.setText("");

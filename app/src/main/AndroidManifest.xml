@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
-
+    <!-- Permissions -->
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -13,9 +13,14 @@
         android:theme="@style/Theme.WhatsappClone"
         tools:targetApi="31">
         <activity
-            android:name=".ChatdetailActivity"
+            android:name=".SettingsActivity"
             android:exported="false" />
-        <!-- SignInActivity - This will be the first screen (launcher) -->
+        <activity
+            android:name=".GroupChatActivity"
+            android:exported="false" />
+        <activity
+            android:name=".ChatdetailActivity"
+            android:exported="false" /> <!-- SignInActivity - This will be the first screen (launcher) -->
         <activity
             android:name=".SignInActivity"
             android:exported="true">
@@ -38,8 +43,8 @@
             android:name="com.google.android.gms.auth.api.signin.GoogleSignInOptions"
             android:value="@string/client_id" />
     </application>
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> <!-- Permissions -->
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
     <uses-permission android:name="android.permission.INTERNET" />
 

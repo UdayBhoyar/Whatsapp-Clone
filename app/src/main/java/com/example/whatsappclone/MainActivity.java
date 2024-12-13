@@ -57,10 +57,15 @@ public class MainActivity extends AppCompatActivity {
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         if (item.getItemId() == R.id.settings) {
-            Toast.makeText(this, "Settings is Clicked", Toast.LENGTH_SHORT).show();
+//            Toast.makeText(this, "", Toast.LENGTH_SHORT).show();
+            Intent intent=new Intent(MainActivity.this,SettingsActivity.class);
+            startActivity(intent);
             return true;
         } else if (item.getItemId() == R.id.groupChat) {
-            Toast.makeText(this, "Group Chat is Clicked", Toast.LENGTH_SHORT).show();
+            //Toast.makeText(this, "Group Chat is Clicked", Toast.LENGTH_SHORT).show();
+            Intent intent1=new Intent(MainActivity.this,GroupChatActivity.class);
+            startActivity(intent1);
+
             return true;
         } else if (item.getItemId() == R.id.log_out) {
             mAuth.signOut();
