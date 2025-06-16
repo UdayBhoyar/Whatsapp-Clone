@@ -7,125 +7,130 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
-
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.whatsappclone.Models.MessageModel;
 import com.example.whatsappclone.R;
+import com.example.whatsappclone.utils.AESUtils;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.FirebaseDatabase;
-
-import org.w3c.dom.Text;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
-public class ChatAdapter extends RecyclerView.Adapter{
+import javax.crypto.SecretKey;
+import com.example.whatsappclone.utils.CryptoUtils;  // Assume you have encrypt/decrypt methods here
+
+public class ChatAdapter extends RecyclerView.Adapter {
+
     ArrayList<MessageModel> messageModels;
     Context context;
     String recId;
-    int SENDER_VIEW_TYPE=1;
-    int RECEIVER_VIEW_TYPE=2;
-
+    int SENDER_VIEW_TYPE = 1;
+    int RECEIVER_VIEW_TYPE = 2;
+    SecretKey aesKey;  // AES key for decrypting
     public ChatAdapter(Context context, ArrayList<MessageModel> messageModels) {
         this.context = context;
         this.messageModels = messageModels;
+        // initialize other needed variables or leave empty
     }
 
-    public ChatAdapter(ArrayList<MessageModel> messageModels, Context context, String recId) {
+
+    // Updated constructor with AES key
+    public ChatAdapter(ArrayList<MessageModel> messageModels, Context context, String recId, SecretKey aesKey) {
         this.messageModels = messageModels;
         this.context = context;
         this.recId = recId;
+        this.aesKey = aesKey;
     }
 
     @NonNull
     @Override
     public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        if(viewType==SENDER_VIEW_TYPE){
-            View view= LayoutInflater.from(context).inflate(R.layout.sample_sender,parent,false);
+        if (viewType == SENDER_VIEW_TYPE) {
+            View view = LayoutInflater.from(context).inflate(R.layout.sample_sender, parent, false);
             return new SenderHolder(view);
-        }else{
-            View view = LayoutInflater.from(context).inflate(R.layout.sample_receiver,parent,false);
+        } else {
+            View view = LayoutInflater.from(context).inflate(R.layout.sample_receiver, parent, false);
             return new ReceiverHolder(view);
         }
     }
 
     @Override
     public int getItemViewType(int position) {
-        if(messageModels.get(position).getUid().equals(FirebaseAuth.getInstance().getUid())){// checks the message id and user id if it matches then it is sender else it is receiver
+        if (messageModels.get(position).getUid().equals(FirebaseAuth.getInstance().getUid())) {
             return SENDER_VIEW_TYPE;
-        }else{
+        } else {
             return RECEIVER_VIEW_TYPE;
         }
     }
 
     @Override
+
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-        MessageModel messageModel=messageModels.get(position);
+        MessageModel messageModel = messageModels.get(position);
 
-        holder.itemView.setOnLongClickListener(new View.OnLongClickListener() {
-            @Override
-            public boolean onLongClick(View v) {
-                new AlertDialog.Builder(context)
-                        .setTitle("Delete").setMessage("Are you sure you want to delete this message?").setPositiveButton("Yes", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-
-                                FirebaseDatabase database=FirebaseDatabase.getInstance();
-                                String senderRoom=FirebaseAuth.getInstance().getUid()+recId;
-                                database.getReference().child("chats")
-                                        .child(senderRoom)
-                                        .child(messageModel.getMessageId())
-                                        .setValue(null);
-                            }
-                        }).setNegativeButton("No", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                            }
-                        }).show();
-                return false;
-            }
+        holder.itemView.setOnLongClickListener(v -> {
+            new AlertDialog.Builder(context)
+                    .setTitle("Delete")
+                    .setMessage("Are you sure you want to delete this message?")
+                    .setPositiveButton("Yes", (dialog, which) -> {
+                        FirebaseDatabase database = FirebaseDatabase.getInstance();
+                        String senderRoom = FirebaseAuth.getInstance().getUid() + recId;
+                        database.getReference().child("chats")
+                                .child(senderRoom)
+                                .child(messageModel.getMessageId())
+                                .setValue(null);
+                    })
+                    .setNegativeButton("No", (dialog, which) -> dialog.dismiss())
+                    .show();
+            return false;
         });
-        if(holder.getClass()==SenderHolder.class){
-            ((SenderHolder) holder).senderMsg.setText(messageModel.getMessage());
 
-            Date date=new Date(messageModel.getTimestamp());//extracting timestamp which is being stored in database in then changing its format
-            SimpleDateFormat simpleDateFormat=new SimpleDateFormat("h:mm a"); // formate of time in am pm format
-            String strDate=simpleDateFormat.format(date);
-            ((SenderHolder) holder).senderTime.setText(strDate.toString());
-        }else{
-            ((ReceiverHolder)holder).receiverMsg.setText(messageModel.getMessage());
-            Date date=new Date(messageModel.getTimestamp());
-            SimpleDateFormat simpleDateFormat=new SimpleDateFormat("h:mm a"); // formate of time in am pm format
-            String strDate=simpleDateFormat.format(date);
-            ((ReceiverHolder) holder).receiveTime.setText(strDate.toString());
+        String decryptedMsg = messageModel.getMessage(); // ✅ Already decrypted
+
+        if (holder instanceof SenderHolder) {
+            ((SenderHolder) holder).senderMsg.setText(decryptedMsg);
+
+            Date date = new Date(messageModel.getTimestamp());
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("h:mm a");
+            String strDate = simpleDateFormat.format(date);
+            ((SenderHolder) holder).senderTime.setText(strDate);
+        } else {
+            ((ReceiverHolder) holder).receiverMsg.setText(decryptedMsg);
+
+            Date date = new Date(messageModel.getTimestamp());
+            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("h:mm a");
+            String strDate = simpleDateFormat.format(date);
+            ((ReceiverHolder) holder).receiveTime.setText(strDate);
         }
     }
+
 
     @Override
     public int getItemCount() {
         return messageModels.size();
     }
 
-    public class ReceiverHolder extends RecyclerView.ViewHolder{
-        TextView receiverMsg,receiveTime;
+    public class ReceiverHolder extends RecyclerView.ViewHolder {
+        TextView receiverMsg, receiveTime;
 
         public ReceiverHolder(@NonNull View itemView) {
             super(itemView);
-            receiverMsg=itemView.findViewById(R.id.receiverText);
-            receiveTime=itemView.findViewById(R.id.receiverTime);
-        }
-    }
-    public class SenderHolder extends RecyclerView.ViewHolder{
-        TextView senderMsg,senderTime;
-        public SenderHolder(@NonNull View itemView) {
-            super(itemView);
-            senderMsg=itemView.findViewById(R.id.senderText);
-            senderTime=itemView.findViewById(R.id.senderTime);
+            receiverMsg = itemView.findViewById(R.id.receiverText);
+            receiveTime = itemView.findViewById(R.id.receiverTime);
         }
     }
 
+    public class SenderHolder extends RecyclerView.ViewHolder {
+        TextView senderMsg, senderTime;
+
+        public SenderHolder(@NonNull View itemView) {
+            super(itemView);
+            senderMsg = itemView.findViewById(R.id.senderText);
+            senderTime = itemView.findViewById(R.id.senderTime);
+        }
+    }
 }

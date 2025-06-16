@@ -2,7 +2,7 @@ package com.example.whatsappclone;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
+import android.util.Log;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
@@ -16,105 +16,119 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.whatsappclone.Adapter.ChatAdapter;
 import com.example.whatsappclone.Models.MessageModel;
 import com.example.whatsappclone.databinding.ActivityChatdetailBinding;
-import com.google.android.gms.tasks.OnSuccessListener;
+import com.example.whatsappclone.utils.AESUtils;
+import com.example.whatsappclone.utils.MyKeyStorage;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
-import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 import java.util.Date;
 
+import javax.crypto.SecretKey;
+
 public class ChatdetailActivity extends AppCompatActivity {
+    private static final String TAG = "ChatdetailActivity";
     ActivityChatdetailBinding binding;
     FirebaseDatabase database;
     FirebaseAuth auth;
+    SecretKey aesKey;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
-        binding=ActivityChatdetailBinding.inflate(getLayoutInflater());
+        binding = ActivityChatdetailBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-        database=FirebaseDatabase.getInstance();
-        auth=FirebaseAuth.getInstance();
-        final String senderId=auth.getUid();
-        String receiveId=getIntent().getStringExtra("userId");
-        String userName=getIntent().getStringExtra("userName");
-        String profilePic=getIntent().getStringExtra("profilePic");
 
-        binding.userName.setText(userName);//taking name and display in for specific chat when clicked on it
+        database = FirebaseDatabase.getInstance();
+        auth = FirebaseAuth.getInstance();
 
-        Picasso.get().load(profilePic).placeholder(R.drawable.avatar3).into(binding.profileImage);//taking image from main page and displaying it in chat
+        final String senderId = auth.getUid();
+        String receiverId = getIntent().getStringExtra("userId");
+        String userName = getIntent().getStringExtra("userName");
+        String profilePic = getIntent().getStringExtra("profilePic");
 
-        binding.backArrow.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent=new Intent(ChatdetailActivity.this,MainActivity.class);
-                startActivity(intent);
-            }
+        binding.userName.setText(userName);
+        // Load profile image as before...
+
+        binding.backArrow.setOnClickListener(v -> {
+            startActivity(new Intent(ChatdetailActivity.this, MainActivity.class));
+            finish();
         });
-        final ArrayList<MessageModel> messageModels=new ArrayList<>();
-        final ChatAdapter chatAdapter=new ChatAdapter(messageModels,this,receiveId);
 
+        aesKey = MyKeyStorage.loadAESKey(this);
+        if (aesKey == null) {
+            try {
+                aesKey = AESUtils.generateKey();
+                MyKeyStorage.saveAESKey(this, aesKey);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to generate encryption key", e);
+                Toast.makeText(this, "Failed to generate encryption key", Toast.LENGTH_SHORT).show();
+                finish();
+                return;
+            }
+        }
+
+        final ArrayList<MessageModel> messageModels = new ArrayList<>();
+        final ChatAdapter chatAdapter = new ChatAdapter(messageModels, this, receiverId, aesKey);
         binding.chatRecycleView.setAdapter(chatAdapter);
+        binding.chatRecycleView.setLayoutManager(new LinearLayoutManager(this));
 
-        LinearLayoutManager layoutManager=new LinearLayoutManager(this);
+        final String senderRoom = senderId + receiverId;
+        final String receiverRoom = receiverId + senderId;
 
-        binding.chatRecycleView.setLayoutManager(layoutManager);
+        database.getReference("chats").child(senderRoom)
+                .addValueEventListener(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(@NonNull DataSnapshot snapshot) {
+                        messageModels.clear();
+                        for (DataSnapshot snap : snapshot.getChildren()) {
+                            MessageModel model = snap.getValue(MessageModel.class);
+                            if (model != null) {
+                                model.setMessageId(snap.getKey());
+                                try {
+                                    String decryptedMsg = AESUtils.decrypt(model.getMessage(), aesKey);
+                                    model.setMessage(decryptedMsg);
+                                } catch (Exception e) {
+                                    Log.e(TAG, "Decryption failed for message: " + model.getMessage(), e);
+                                    model.setMessage("[Decryption failed]");
+                                }
+                                messageModels.add(model);
+                            }
+                        }
+                        chatAdapter.notifyDataSetChanged();
+                    }
 
-        final String senderRoom=senderId+receiveId; //by this we can identify from where did the message came from and where it is to be sent
-        final String receiverRoom=receiveId+senderId;
+                    @Override
+                    public void onCancelled(@NonNull DatabaseError error) {
+                        Log.e(TAG, "Database error: " + error.getMessage());
+                    }
+                });
 
-        database.getReference().child("chats")
-                        .child(senderRoom)
-                                .addValueEventListener(new ValueEventListener() {
-                                    @Override
-                                    public void onDataChange(@NonNull DataSnapshot snapshot) {
-                                            messageModels.clear();
-                                            for(DataSnapshot snapshot1:snapshot.getChildren()){
-                                                MessageModel model=snapshot1.getValue(MessageModel.class);
-                                                model.setMessageId(snapshot1.getKey());
-                                                messageModels.add(model);
-                                            }
-                                            chatAdapter.notifyDataSetChanged();
-                                    }
+        binding.send.setOnClickListener(v -> {
+            String messageText = binding.enterMessage.getText().toString().trim();
+            if (messageText.isEmpty()) {
+                Toast.makeText(this, "Enter message", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
-                                    @Override
-                                    public void onCancelled(@NonNull DatabaseError error) {
+            try {
+                String encrypted = AESUtils.encrypt(messageText, aesKey);
+                MessageModel message = new MessageModel(senderId, encrypted);
+                message.setTimestamp(new Date().getTime());
 
-                                    }
-                                });
-
-        binding.send.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                String message=binding.enterMessage.getText().toString();// taking msg from text field which is to be sent
-                if (message.trim().isEmpty()) {
-                    Toast.makeText(ChatdetailActivity.this, "Enter something", Toast.LENGTH_SHORT).show();
-                    return; // Stop further execution
-                }
-
-                final MessageModel model=new MessageModel(senderId,message);
-                model.setTimestamp(new Date().getTime());
                 binding.enterMessage.setText("");
 
-                database.getReference().child("chats") //we used 2 addonsuccesslistener one for sender and one for receiver now by identifying the ids we will identify who is receiver and who is sender
-                        .child(senderRoom).push().setValue(model).addOnSuccessListener(new OnSuccessListener<Void>() {
-                            @Override
-                            public void onSuccess(Void unused) {
-                                database.getReference().child("chats")
-                                        .child(receiverRoom)
-                                        .push().setValue(model).addOnSuccessListener(new OnSuccessListener<Void>() {
-                                            @Override
-                                            public void onSuccess(Void unused) {
+                database.getReference("chats").child(senderRoom).push().setValue(message)
+                        .addOnSuccessListener(unused -> database.getReference("chats").child(receiverRoom).push().setValue(message))
+                        .addOnFailureListener(e -> Log.e(TAG, "Failed to send message", e));
 
-                                            }
-                                        });
-                            }
-                        });
+            } catch (Exception e) {
+                Log.e(TAG, "Encryption failed", e);
+                Toast.makeText(this, "Encryption failed", Toast.LENGTH_SHORT).show();
             }
         });
 

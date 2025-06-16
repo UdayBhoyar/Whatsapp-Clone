@@ -15,6 +15,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.whatsappclone.ChatdetailActivity;
 import com.example.whatsappclone.Models.Users;
 import com.example.whatsappclone.R;
+import com.example.whatsappclone.utils.AESUtils;
+import com.example.whatsappclone.utils.MyKeyStorage;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -24,13 +26,24 @@ import com.squareup.picasso.Picasso;
 
 import java.util.ArrayList;
 
+import javax.crypto.SecretKey;
+
 public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> {
     ArrayList<Users> list;
     Context context;
+    private SecretKey secretKey;
 
     public UsersAdapter(Context context, ArrayList<Users> list) {
         this.context = context;
         this.list = list;
+
+        // Load dynamic key from MyKeyStorage
+        try {
+            secretKey = MyKeyStorage.loadAESKey(context);
+        } catch (Exception e) {
+            Log.e("UsersAdapter", "Failed to load AES key", e);
+            secretKey = null;
+        }
     }
 
     @NonNull
@@ -44,54 +57,65 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
     public void onBindViewHolder(ViewHolder holder, int position) {
         Users users = list.get(position);
 
-        // Load profile picture with a fallback
+        // Load profile picture with fallback image
         if (users.getProfilePic() != null && !users.getProfilePic().isEmpty()) {
             Picasso.get()
                     .load(users.getProfilePic())
-                    .placeholder(R.drawable.avatar3) // Placeholder image
-                    .error(R.drawable.avatar3) // Error image if loading fails
+                    .placeholder(R.drawable.avatar3)
+                    .error(R.drawable.avatar3)
                     .into(holder.imageView);
         } else {
-            holder.imageView.setImageResource(R.drawable.avatar3); // Default image
+            holder.imageView.setImageResource(R.drawable.avatar3);
         }
 
-        // Set user details
         holder.userName.setText(users.getUserName());
-        //this code is to set the last message by ordering the last time stamp
+
+        // Fetch last encrypted message from Firebase, decrypt it and set
         FirebaseDatabase.getInstance().getReference().child("chats")
                 .child(FirebaseAuth.getInstance().getUid() + users.getUserId())
                 .orderByChild("timestamp")
                 .limitToLast(1)
-                .addValueEventListener(new ValueEventListener() { // Use addValueEventListener for real-time updates
+                .addValueEventListener(new ValueEventListener() {
                     @Override
                     public void onDataChange(@NonNull DataSnapshot snapshot) {
                         if (snapshot.hasChildren()) {
                             for (DataSnapshot snapshot1 : snapshot.getChildren()) {
-                                String message = snapshot1.child("message").getValue(String.class);
-                                holder.lastMessage.setText(message);
+                                String encryptedMessage = snapshot1.child("message").getValue(String.class);
+                                if (encryptedMessage != null) {
+                                    if (AESUtils.isValidEncryptedData(encryptedMessage) && secretKey != null) {
+                                        try {
+                                            String decryptedMessage = AESUtils.decrypt(encryptedMessage, secretKey);
+                                            holder.lastMessage.setText(decryptedMessage);
+                                        } catch (Exception e) {
+                                            Log.e("UsersAdapter", "Decryption failed", e);
+                                            holder.lastMessage.setText("[Encrypted message]");
+                                        }
+                                    } else {
+                                        holder.lastMessage.setText(encryptedMessage);
+                                    }
+                                } else {
+                                    holder.lastMessage.setText("");
+                                }
                             }
                         } else {
-                            holder.lastMessage.setText(""); // Show nothing if no messages are found
+                            holder.lastMessage.setText("");
                         }
                     }
 
                     @Override
                     public void onCancelled(@NonNull DatabaseError error) {
                         Log.e("UsersAdapter", "Failed to fetch last message", error.toException());
+                        holder.lastMessage.setText("");
                     }
                 });
 
-        holder.itemView.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent=new Intent(context, ChatdetailActivity.class);
-                intent.putExtra("userId", users.getUserId());
-                intent.putExtra("profilePic",users.getProfilePic());
-                intent.putExtra("userName",users.getUserName());
-                context.startActivity(intent);
-            }
+        holder.itemView.setOnClickListener(v -> {
+            Intent intent = new Intent(context, ChatdetailActivity.class);
+            intent.putExtra("userId", users.getUserId());
+            intent.putExtra("profilePic", users.getProfilePic());
+            intent.putExtra("userName", users.getUserName());
+            context.startActivity(intent);
         });
-
     }
 
     @Override
@@ -99,7 +123,7 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
         return list != null ? list.size() : 0;
     }
 
-    public class ViewHolder extends RecyclerView.ViewHolder {
+    public static class ViewHolder extends RecyclerView.ViewHolder {
         ImageView imageView;
         TextView userName, lastMessage;
 
