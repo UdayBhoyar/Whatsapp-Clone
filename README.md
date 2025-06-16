@@ -2,7 +2,7 @@
 
 A real-time chat application built using **Java**, **Firebase**, and **AES-256 encryption** to ensure secure end-to-end messaging.
 
-![Banner](https://user-images.githubusercontent.com/0000000/000000000-whatsapp-banner.png) <!-- Optional image banner -->
+
 
 ---
 
@@ -18,13 +18,7 @@ A real-time chat application built using **Java**, **Firebase**, and **AES-256 e
 
 ---
 
-## 📱 Screenshots
 
-| Chat Screen | Last Seen Decryption | Encrypted Message |
-|------------|----------------------|-------------------|
-| ![chat](assets/chat.png) | ![last-seen](assets/last-seen.png) | ![encrypt](assets/encryption.png) |
-
----
 
 ## 🛠 Tech Stack
 
