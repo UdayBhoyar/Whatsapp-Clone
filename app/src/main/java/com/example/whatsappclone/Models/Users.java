@@ -2,6 +2,8 @@ package com.example.whatsappclone.Models;
 
 public class Users {
     String profilePic,userName,mail,password,userId,lastMessage,status;
+    Long lastMessageTime;
+    
     public Users(){
 
     }
@@ -76,5 +78,13 @@ public class Users {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public Long getLastMessageTime() {
+        return lastMessageTime;
+    }
+
+    public void setLastMessageTime(Long lastMessageTime) {
+        this.lastMessageTime = lastMessageTime;
     }
 }

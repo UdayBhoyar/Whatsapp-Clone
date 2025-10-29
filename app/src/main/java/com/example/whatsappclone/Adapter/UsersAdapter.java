@@ -15,8 +15,8 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.whatsappclone.ChatdetailActivity;
 import com.example.whatsappclone.Models.Users;
 import com.example.whatsappclone.R;
-import com.example.whatsappclone.utils.AESUtils;
-import com.example.whatsappclone.utils.MyKeyStorage;
+import com.example.whatsappclone.utils.HybridEncryption;
+import com.example.whatsappclone.utils.RSAKeyManager;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -24,25 +24,27 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 import com.squareup.picasso.Picasso;
 
+import java.security.PrivateKey;
 import java.util.ArrayList;
-
-import javax.crypto.SecretKey;
 
 public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> {
     ArrayList<Users> list;
     Context context;
-    private SecretKey secretKey;
+    private PrivateKey privateKey;
 
     public UsersAdapter(Context context, ArrayList<Users> list) {
         this.context = context;
         this.list = list;
 
-        // Load dynamic key from MyKeyStorage
+        // Load private key for decryption
         try {
-            secretKey = MyKeyStorage.loadAESKey(context);
+            privateKey = RSAKeyManager.loadPrivateKey(context);
+            if (privateKey == null) {
+                Log.w("UsersAdapter", "Private key not found - last messages may not decrypt");
+            }
         } catch (Exception e) {
-            Log.e("UsersAdapter", "Failed to load AES key", e);
-            secretKey = null;
+            Log.e("UsersAdapter", "Failed to load private key", e);
+            privateKey = null;
         }
     }
 
@@ -70,7 +72,7 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
 
         holder.userName.setText(users.getUserName());
 
-        // Fetch last encrypted message from Firebase, decrypt it and set
+        // Fetch last encrypted message from Firebase and decrypt it
         FirebaseDatabase.getInstance().getReference().child("chats")
                 .child(FirebaseAuth.getInstance().getUid() + users.getUserId())
                 .orderByChild("timestamp")
@@ -81,24 +83,35 @@ public class UsersAdapter extends RecyclerView.Adapter<UsersAdapter.ViewHolder> 
                         if (snapshot.hasChildren()) {
                             for (DataSnapshot snapshot1 : snapshot.getChildren()) {
                                 String encryptedMessage = snapshot1.child("message").getValue(String.class);
-                                if (encryptedMessage != null) {
-                                    if (AESUtils.isValidEncryptedData(encryptedMessage) && secretKey != null) {
-                                        try {
-                                            String decryptedMessage = AESUtils.decrypt(encryptedMessage, secretKey);
-                                            holder.lastMessage.setText(decryptedMessage);
-                                        } catch (Exception e) {
-                                            Log.e("UsersAdapter", "Decryption failed", e);
-                                            holder.lastMessage.setText("[Encrypted message]");
-                                        }
-                                    } else {
-                                        holder.lastMessage.setText(encryptedMessage);
+                                String encryptedSessionKey = snapshot1.child("encryptedSessionKey").getValue(String.class);
+                                Long timestamp = snapshot1.child("timestamp").getValue(Long.class);
+                                
+                                // Update the user's last message time for sorting
+                                if (timestamp != null) {
+                                    users.setLastMessageTime(timestamp);
+                                }
+                                
+                                if (encryptedMessage != null && encryptedSessionKey != null && privateKey != null) {
+                                    try {
+                                        // Decrypt using hybrid encryption
+                                        HybridEncryption.EncryptedMessage encMsg = 
+                                            new HybridEncryption.EncryptedMessage(encryptedMessage, encryptedSessionKey);
+                                        String decryptedMessage = HybridEncryption.decrypt(encMsg, privateKey);
+                                        holder.lastMessage.setText(decryptedMessage);
+                                    } catch (Exception e) {
+                                        Log.e("UsersAdapter", "Decryption failed for last message", e);
+                                        holder.lastMessage.setText("[Encrypted message]");
                                     }
+                                } else if (encryptedMessage != null) {
+                                    // Old message without encryption or missing keys
+                                    holder.lastMessage.setText("[Encrypted message]");
                                 } else {
                                     holder.lastMessage.setText("");
                                 }
                             }
                         } else {
                             holder.lastMessage.setText("");
+                            users.setLastMessageTime(0L); // No messages yet
                         }
                     }
 

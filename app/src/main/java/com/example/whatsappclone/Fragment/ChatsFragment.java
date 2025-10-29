@@ -22,6 +22,8 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 public class ChatsFragment extends Fragment {
 
@@ -73,6 +75,10 @@ public class ChatsFragment extends Fragment {
                         }
                     }
                     Log.d(TAG, "Total users fetched: " + list.size());
+                    
+                    // Sort users by last message time (most recent first)
+                    sortUsersByLastMessage();
+                    
                     adapter.notifyDataSetChanged(); // Notify the adapter of data changes
                 }
 
@@ -87,5 +93,20 @@ public class ChatsFragment extends Fragment {
         }
 
         return binding != null ? binding.getRoot() : null;
+    }
+
+    /**
+     * Sort users by last message timestamp (most recent first)
+     */
+    private void sortUsersByLastMessage() {
+        Collections.sort(list, new Comparator<Users>() {
+            @Override
+            public int compare(Users u1, Users u2) {
+                Long time1 = u1.getLastMessageTime() != null ? u1.getLastMessageTime() : 0L;
+                Long time2 = u2.getLastMessageTime() != null ? u2.getLastMessageTime() : 0L;
+                // Sort in descending order (most recent first)
+                return time2.compareTo(time1);
+            }
+        });
     }
 }

@@ -11,6 +11,7 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.whatsappclone.databinding.ActivitySignInBinding;
+import com.example.whatsappclone.utils.RSAKeyManager;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
@@ -29,6 +30,7 @@ import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.security.KeyPair;
 
 import static android.content.ContentValues.TAG;
 
@@ -77,9 +79,32 @@ public class SignInActivity extends AppCompatActivity {
                     .addOnCompleteListener(task -> {
                         progressDialog.dismiss();
                         if (task.isSuccessful()) {
-                            Toast.makeText(SignInActivity.this, "Login Successful", Toast.LENGTH_SHORT).show();
-                            startActivity(new Intent(SignInActivity.this, MainActivity.class));
-                            finish();
+                            try {
+                                // Check if user has RSA keys (for existing users who signed up before encryption)
+                                if (!RSAKeyManager.hasKeys(SignInActivity.this)) {
+                                    // Generate keys for existing users
+                                    KeyPair keyPair = RSAKeyManager.generateKeyPair();
+                                    RSAKeyManager.saveKeyPair(SignInActivity.this, keyPair);
+                                    
+                                    String publicKeyStr = RSAKeyManager.publicKeyToString(keyPair.getPublic());
+                                    String userId = task.getResult().getUser().getUid();
+                                    FirebaseDatabase.getInstance().getReference().child("PublicKeys").child(userId).setValue(publicKeyStr);
+                                    
+                                    Log.d("SignInActivity", "Generated RSA keys for existing user");
+                                }
+                                
+                                Toast.makeText(SignInActivity.this, "Login Successful", Toast.LENGTH_SHORT).show();
+                                startActivity(new Intent(SignInActivity.this, MainActivity.class));
+                                finish();
+                                
+                            } catch (Exception e) {
+                                Log.e("SignInActivity", "Failed to setup encryption keys", e);
+                                Toast.makeText(SignInActivity.this, "Login successful but encryption setup failed", Toast.LENGTH_SHORT).show();
+                                
+                                // Still allow login
+                                startActivity(new Intent(SignInActivity.this, MainActivity.class));
+                                finish();
+                            }
                         } else {
                             Toast.makeText(SignInActivity.this, "Login Failed: " + task.getException().getMessage(), Toast.LENGTH_SHORT).show();
                         }

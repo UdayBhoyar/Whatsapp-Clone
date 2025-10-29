@@ -20,8 +20,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
-import javax.crypto.SecretKey;
-import com.example.whatsappclone.utils.CryptoUtils;  // Assume you have encrypt/decrypt methods here
+import java.security.PrivateKey;
 
 public class ChatAdapter extends RecyclerView.Adapter {
 
@@ -30,20 +29,20 @@ public class ChatAdapter extends RecyclerView.Adapter {
     String recId;
     int SENDER_VIEW_TYPE = 1;
     int RECEIVER_VIEW_TYPE = 2;
-    SecretKey aesKey;  // AES key for decrypting
+    PrivateKey privateKey;
+    
     public ChatAdapter(Context context, ArrayList<MessageModel> messageModels) {
         this.context = context;
         this.messageModels = messageModels;
-        // initialize other needed variables or leave empty
     }
 
 
-    // Updated constructor with AES key
-    public ChatAdapter(ArrayList<MessageModel> messageModels, Context context, String recId, SecretKey aesKey) {
+    // Updated constructor with PrivateKey
+    public ChatAdapter(ArrayList<MessageModel> messageModels, Context context, String recId, PrivateKey privateKey) {
         this.messageModels = messageModels;
         this.context = context;
         this.recId = recId;
-        this.aesKey = aesKey;
+        this.privateKey = privateKey;
     }
 
     @NonNull

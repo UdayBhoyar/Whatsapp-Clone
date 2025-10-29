@@ -2,12 +2,19 @@ package com.example.whatsappclone.Models;
 
 public class MessageModel {
     String uid,message,messageId;
+    String encryptedSessionKey;
     Long timestamp;
 
 
     public MessageModel(String uid, String message) {
         this.uid = uid;
         this.message = message;
+    }
+
+    public MessageModel(String uid, String message, String encryptedSessionKey) {
+        this.uid = uid;
+        this.message = message;
+        this.encryptedSessionKey = encryptedSessionKey;
     }
 
     public MessageModel(String uid, String message, Long timestamp) {
@@ -49,5 +56,13 @@ public class MessageModel {
 
     public void setTimestamp(Long timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public String getEncryptedSessionKey() {
+        return encryptedSessionKey;
+    }
+
+    public void setEncryptedSessionKey(String encryptedSessionKey) {
+        this.encryptedSessionKey = encryptedSessionKey;
     }
 }
